@@ -2314,7 +2314,6 @@ if __name__=='__main__':
     argv = gdal.GeneralCmdLineProcessor( sys.argv )
     if argv:
         gdal2tiles = GDAL2Tiles( argv[1:] ) # handle command line options
-        #gdal2tiles.open_input()
 
         print("Generating metadata:")
         p = multiprocessing.Process(target=worker_metadata, args=[argv])
@@ -2323,23 +2322,13 @@ if __name__=='__main__':
         print("Metadata generation complete.")
 
         pool = multiprocessing.Pool()
-        #processed_tiles = 0
         print("Generating Base Tiles:")
         for cpu in range(gdal2tiles.options.processes):
             pool.apply_async(worker_base_tiles, [argv, cpu], callback=worker_callback)
         pool.close()
-        # while len(multiprocessing.active_children()) != 0:
-        #     try:
-        #         total = queue.get(timeout=1)
-        #         processed_tiles += 1
-        #         gdal.TermProgress_nocb(processed_tiles / float(total))
-        #         sys.stdout.flush()
-        #     except:
-        #         pass
         pool.join()
         print("Base tile generation complete.")
 
-        #processed_tiles = 0
         tminz ,tmaxz = get_zooms(gdal2tiles)
         print("Generating Overview Tiles:")
         for tz in range(tmaxz-1, tminz-1, -1):
@@ -2348,18 +2337,7 @@ if __name__=='__main__':
             for cpu in range(gdal2tiles.options.processes):
                 pool.apply_async(worker_overview_tiles, [argv, cpu, tz])
             pool.close()
-            # while len(multiprocessing.active_children()) != 0:
-            #     try:
-            #         total = queue.get(timeout=1)
-            #         processed_tiles += 1
-            #         gdal.TermProgress_nocb(processed_tiles / float(total))
-            #         sys.stdout.flush()
-            #     except:
-            #         pass
             pool.join()
             print("\tZoom level " + str(tz) + " complete.")
 
         print("Overview tile generation complete")
-
-        #gdal2tiles = GDAL2Tiles( argv[1:] )
-        #gdal2tiles.process()
