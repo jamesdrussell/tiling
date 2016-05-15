@@ -1362,9 +1362,8 @@ gdal2tiles temp.vrt""" % self.input )
                     # Create directories for the tile
                     if not os.path.exists(os.path.dirname(tilefilename)):
                         os.makedirs(os.path.dirname(tilefilename))
-                except Exception as e:
-                    print("EXCEPTION 0")
-                    print(e)
+                except:
+                    pass
 
                 try:
                     dsquery = self.mem_drv.Create('', 2*self.tilesize, 2*self.tilesize, tilebands)
