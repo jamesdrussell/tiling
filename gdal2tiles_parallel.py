@@ -50,6 +50,7 @@ except:
 import os
 import math
 import multiprocessing
+import tempfile
 
 try:
     from PIL import Image
@@ -830,8 +831,7 @@ gdal2tiles temp.vrt""" % self.input )
 
                     # Correction of AutoCreateWarpedVRT for NODATA values
                     if self.in_nodata != []:
-                        import tempfile
-                        tempfilename = tempfile.mktemp('-gdal2tiles.vrt')
+                        fd, tempfilename = tempfile.mkstemp('-gdal2tiles.vrt')
                         self.out_ds.GetDriver().CreateCopy(tempfilename, self.out_ds)
                         # open as a text file
                         s = open(tempfilename).read()
@@ -865,8 +865,7 @@ gdal2tiles temp.vrt""" % self.input )
                     # Correction of AutoCreateWarpedVRT for Mono (1 band) and RGB (3 bands) files without NODATA:
                     # equivalent of gdalwarp -dstalpha
                     if self.in_nodata == [] and self.out_ds.RasterCount in [1,3]:
-                        import tempfile
-                        tempfilename = tempfile.mktemp('-gdal2tiles.vrt')
+                        fd, tempfilename = tempfile.mkstemp('-gdal2tiles.vrt')
                         self.out_ds.GetDriver().CreateCopy(tempfilename, self.out_ds)
                         # open as a text file
                         s = open(tempfilename).read()
