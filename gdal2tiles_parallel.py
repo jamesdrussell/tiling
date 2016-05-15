@@ -1362,11 +1362,15 @@ gdal2tiles temp.vrt""" % self.input )
                 if not os.path.exists(os.path.dirname(tilefilename)):
                     os.makedirs(os.path.dirname(tilefilename))
 
-                dsquery = self.mem_drv.Create('', 2*self.tilesize, 2*self.tilesize, tilebands)
-                # TODO: fill the null value
-                #for i in range(1, tilebands+1):
-                #   dsquery.GetRasterBand(1).Fill(tilenodata)
-                dstile = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands)
+                try:
+                    dsquery = self.mem_drv.Create('', 2*self.tilesize, 2*self.tilesize, tilebands)
+                    # TODO: fill the null value
+                    #for i in range(1, tilebands+1):
+                    #   dsquery.GetRasterBand(1).Fill(tilenodata)
+                    dstile = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands)
+                except Exception as e:
+                    print("EXCEPTION 1")
+                    print(e)
 
                 # TODO: Implement more clever walking on the tiles with cache functionality
                 # probably walk should start with reading of four tiles from top left corner
