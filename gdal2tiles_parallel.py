@@ -2315,19 +2315,19 @@ if __name__=='__main__':
     if argv:
         gdal2tiles = GDAL2Tiles( argv[1:] ) # handle command line options
 
-        print("Generating metadata:")
-        p = multiprocessing.Process(target=worker_metadata, args=[argv])
-        p.start()
-        p.join()
-        print("Metadata generation complete.")
+        # print("Generating metadata:")
+        # p = multiprocessing.Process(target=worker_metadata, args=[argv])
+        # p.start()
+        # p.join()
+        # print("Metadata generation complete.")
 
-        pool = multiprocessing.Pool()
-        print("Generating Base Tiles:")
-        for cpu in range(gdal2tiles.options.processes):
-            pool.apply_async(worker_base_tiles, [argv, cpu], callback=worker_callback)
-        pool.close()
-        pool.join()
-        print("Base tile generation complete.")
+        # pool = multiprocessing.Pool()
+        # print("Generating Base Tiles:")
+        # for cpu in range(gdal2tiles.options.processes):
+        #     pool.apply_async(worker_base_tiles, [argv, cpu], callback=worker_callback)
+        # pool.close()
+        # pool.join()
+        # print("Base tile generation complete.")
 
         tminz ,tmaxz = get_zooms(gdal2tiles)
         print("Generating Overview Tiles:")
