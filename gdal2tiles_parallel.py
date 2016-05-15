@@ -1345,20 +1345,20 @@ gdal2tiles temp.vrt""" % self.input )
                 if (ti - 1) % self.options.processes != cpu:
                     continue
 
-                try:
-                    tilefilename = os.path.join( self.output, str(tz), str(tx), "%s.%s" % (ty, self.tileext) )
+                tilefilename = os.path.join( self.output, str(tz), str(tx), "%s.%s" % (ty, self.tileext) )
 
+                if self.options.verbose:
+                    print(ti,'/',tcount, tilefilename) #, "( TileMapService: z / x / y )"
+
+                if self.options.resume and os.path.exists(tilefilename):
                     if self.options.verbose:
-                        print(ti,'/',tcount, tilefilename) #, "( TileMapService: z / x / y )"
+                        print("Tile generation skiped because of --resume")
+                    else:
+                        #queue.put(tcount)
+                        pass
+                    continue
 
-                    if self.options.resume and os.path.exists(tilefilename):
-                        if self.options.verbose:
-                            print("Tile generation skiped because of --resume")
-                        else:
-                            #queue.put(tcount)
-                            pass
-                        continue
-
+                try:
                     # Create directories for the tile
                     if not os.path.exists(os.path.dirname(tilefilename)):
                         os.makedirs(os.path.dirname(tilefilename))
