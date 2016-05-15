@@ -714,7 +714,7 @@ gdal_vrtmerge.py -o merged.vrt %s""" % " ".join(self.args))
     def open_input(self):
         """Initialization of the input raster, reprojection if necessary"""
 
-        #gdal.UseExceptions()
+        gdal.UseExceptions()
         gdal.AllRegister()
         #if not self.options.verbose:
             #gdal.PushErrorHandler('CPLQuietErrorHandler')
