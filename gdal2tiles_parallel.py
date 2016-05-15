@@ -2296,7 +2296,7 @@ def worker_base_tiles(argv, cpu):
   return cpu
 
 def worker_callback(cpu):
-    print "End of worker: " + str(cpu)
+    print "\tEnd of worker: " + str(cpu)
 
 def worker_overview_tiles(argv, cpu, tz):
   sys.stdout.flush()
@@ -2340,7 +2340,7 @@ if __name__=='__main__':
         print("Base tile generation complete.")
 
         #processed_tiles = 0
-        tminz ,tmaxz = getZooms(gdal2tiles)
+        tminz ,tmaxz = get_zooms(gdal2tiles)
         print("Generating Overview Tiles:")
         for tz in range(tmaxz-1, tminz-1, -1):
             print("\tGenerating for zoom level: " + str(tz))
