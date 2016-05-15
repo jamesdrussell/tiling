@@ -1344,40 +1344,41 @@ gdal2tiles temp.vrt""" % self.input )
                 ti += 1
                 if (ti - 1) % self.options.processes != cpu:
                     continue
-                try:
-                    tilefilename = os.path.join( self.output, str(tz), str(tx), "%s.%s" % (ty, self.tileext) )
 
+                tilefilename = os.path.join( self.output, str(tz), str(tx), "%s.%s" % (ty, self.tileext) )
+
+                if self.options.verbose:
+                    print(ti,'/',tcount, tilefilename) #, "( TileMapService: z / x / y )"
+
+                if self.options.resume and os.path.exists(tilefilename):
                     if self.options.verbose:
-                        print(ti,'/',tcount, tilefilename) #, "( TileMapService: z / x / y )"
+                        print("Tile generation skiped because of --resume")
+                    else:
+                        #queue.put(tcount)
+                        pass
+                    continue
 
-                    if self.options.resume and os.path.exists(tilefilename):
-                        if self.options.verbose:
-                            print("Tile generation skiped because of --resume")
-                        else:
-                            #queue.put(tcount)
-                            pass
-                        continue
+                # Create directories for the tile
+                if not os.path.exists(os.path.dirname(tilefilename)):
+                    os.makedirs(os.path.dirname(tilefilename))
 
-                    # Create directories for the tile
-                    if not os.path.exists(os.path.dirname(tilefilename)):
-                        os.makedirs(os.path.dirname(tilefilename))
+                dsquery = self.mem_drv.Create('', 2*self.tilesize, 2*self.tilesize, tilebands)
+                # TODO: fill the null value
+                #for i in range(1, tilebands+1):
+                #   dsquery.GetRasterBand(1).Fill(tilenodata)
+                dstile = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands)
 
-                    dsquery = self.mem_drv.Create('', 2*self.tilesize, 2*self.tilesize, tilebands)
-                    # TODO: fill the null value
-                    #for i in range(1, tilebands+1):
-                    #   dsquery.GetRasterBand(1).Fill(tilenodata)
-                    dstile = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands)
+                # TODO: Implement more clever walking on the tiles with cache functionality
+                # probably walk should start with reading of four tiles from top left corner
+                # Hilbert curve
 
-                    # TODO: Implement more clever walking on the tiles with cache functionality
-                    # probably walk should start with reading of four tiles from top left corner
-                    # Hilbert curve
-
-                    children = []
-                    # Read the tiles and write them to query window
-                    for y in range(2*ty,2*ty+2):
-                        for x in range(2*tx,2*tx+2):
-                            minx, miny, maxx, maxy = self.tminmax[tz+1]
-                            if x >= minx and x <= maxx and y >= miny and y <= maxy:
+                children = []
+                # Read the tiles and write them to query window
+                for y in range(2*ty,2*ty+2):
+                    for x in range(2*tx,2*tx+2):
+                        minx, miny, maxx, maxy = self.tminmax[tz+1]
+                        if x >= minx and x <= maxx and y >= miny and y <= maxy:
+                            try:
                                 dsquerytile = gdal.Open( os.path.join( self.output, str(tz+1), str(x), "%s.%s" % (y, self.tileext)), gdal.GA_ReadOnly)
                                 if (ty==0 and y==1) or (ty!=0 and (y % (2*ty)) != 0):
                                     tileposy = 0
@@ -1393,28 +1394,28 @@ gdal2tiles temp.vrt""" % self.input )
                                     dsquerytile.ReadRaster(0,0,self.tilesize,self.tilesize),
                                     band_list=list(range(1,tilebands+1)))
                                 children.append( [x, y, tz+1] )
+                            except Exception as e:
+                              print("EXCEPTION!!!!!!")
+                              print(e)
 
-                    self.scale_query_to_tile(dsquery, dstile, tilefilename)
+                self.scale_query_to_tile(dsquery, dstile, tilefilename)
+                # Write a copy of tile to png/jpg
+                if self.options.resampling != 'antialias':
                     # Write a copy of tile to png/jpg
-                    if self.options.resampling != 'antialias':
-                        # Write a copy of tile to png/jpg
-                        self.out_drv.CreateCopy(tilefilename, dstile, strict=0)
+                    self.out_drv.CreateCopy(tilefilename, dstile, strict=0)
 
-                    if self.options.verbose:
-                        print("\tbuild from zoom", tz+1," tiles:", (2*tx, 2*ty), (2*tx+1, 2*ty),(2*tx, 2*ty+1), (2*tx+1, 2*ty+1))
+                if self.options.verbose:
+                    print("\tbuild from zoom", tz+1," tiles:", (2*tx, 2*ty), (2*tx+1, 2*ty),(2*tx, 2*ty+1), (2*tx+1, 2*ty+1))
 
-                    # Create a KML file for this tile.
-                    if self.kml:
-                        f = open( os.path.join(self.output, '%d/%d/%d.kml' % (tz, tx, ty)), 'w')
-                        f.write( self.generate_kml( tx, ty, tz, children ) )
-                        f.close()
+                # Create a KML file for this tile.
+                if self.kml:
+                    f = open( os.path.join(self.output, '%d/%d/%d.kml' % (tz, tx, ty)), 'w')
+                    f.write( self.generate_kml( tx, ty, tz, children ) )
+                    f.close()
 
-                    if not self.options.verbose:
-                        #queue.put(tcount)
-                        pass
-                except Exception as e:
-                  print("EXCEPTION!!!!!!!")
-                  print(e)
+                if not self.options.verbose:
+                    #queue.put(tcount)
+                    pass
 
 
     # -------------------------------------------------------------------------
