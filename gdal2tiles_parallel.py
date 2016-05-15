@@ -66,7 +66,6 @@ __version__ = "$Id: gdal2tiles.py 28392 2015-01-30 21:01:09Z rouault $"
 resampling_list = ('average','near','bilinear','cubic','cubicspline','lanczos','antialias')
 profile_list = ('mercator','geodetic','raster') #,'zoomify')
 webviewer_list = ('all','google','openlayers','none')
-#queue = multiprocessing.Queue()
 
 # =============================================================================
 # =============================================================================
@@ -716,8 +715,8 @@ gdal_vrtmerge.py -o merged.vrt %s""" % " ".join(self.args))
 
         gdal.UseExceptions()
         gdal.AllRegister()
-        #if not self.options.verbose:
-            #gdal.PushErrorHandler('CPLQuietErrorHandler')
+        if not self.options.verbose:
+            gdal.PushErrorHandler('CPLQuietErrorHandler')
 
         # Initialize necessary GDAL drivers
 
@@ -1208,7 +1207,6 @@ gdal2tiles temp.vrt""" % self.input )
                     if self.options.verbose:
                         print("Tile generation skiped because of --resume")
                     else:
-                        #queue.put(tcount)
                         pass
                     continue
 
@@ -1314,7 +1312,6 @@ gdal2tiles temp.vrt""" % self.input )
                         f.close()
 
                 if not self.options.verbose:
-                    #queue.put(tcount)
                     pass
 
     # -------------------------------------------------------------------------
@@ -1354,7 +1351,6 @@ gdal2tiles temp.vrt""" % self.input )
                     if self.options.verbose:
                         print("Tile generation skiped because of --resume")
                     else:
-                        #queue.put(tcount)
                         pass
                     continue
 
@@ -1365,15 +1361,11 @@ gdal2tiles temp.vrt""" % self.input )
                 except:
                     pass
 
-                try:
-                    dsquery = self.mem_drv.Create('', 2*self.tilesize, 2*self.tilesize, tilebands)
-                    # TODO: fill the null value
-                    #for i in range(1, tilebands+1):
-                    #   dsquery.GetRasterBand(1).Fill(tilenodata)
-                    dstile = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands)
-                except Exception as e:
-                    print("EXCEPTION 1")
-                    print(e)
+                dsquery = self.mem_drv.Create('', 2*self.tilesize, 2*self.tilesize, tilebands)
+                # TODO: fill the null value
+                #for i in range(1, tilebands+1):
+                #   dsquery.GetRasterBand(1).Fill(tilenodata)
+                dstile = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands)
 
                 # TODO: Implement more clever walking on the tiles with cache functionality
                 # probably walk should start with reading of four tiles from top left corner
@@ -1385,35 +1377,27 @@ gdal2tiles temp.vrt""" % self.input )
                     for x in range(2*tx,2*tx+2):
                         minx, miny, maxx, maxy = self.tminmax[tz+1]
                         if x >= minx and x <= maxx and y >= miny and y <= maxy:
-                            try:
-                                dsquerytile = gdal.Open( os.path.join( self.output, str(tz+1), str(x), "%s.%s" % (y, self.tileext)), gdal.GA_ReadOnly)
-                                if (ty==0 and y==1) or (ty!=0 and (y % (2*ty)) != 0):
-                                    tileposy = 0
-                                else:
-                                    tileposy = self.tilesize
-                                if tx:
-                                    tileposx = x % (2*tx) * self.tilesize
-                                elif tx==0 and x==1:
-                                    tileposx = self.tilesize
-                                else:
-                                    tileposx = 0
-                                dsquery.WriteRaster( tileposx, tileposy, self.tilesize, self.tilesize,
-                                    dsquerytile.ReadRaster(0,0,self.tilesize,self.tilesize),
-                                    band_list=list(range(1,tilebands+1)))
-                                children.append( [x, y, tz+1] )
-                            except Exception as e:
-                              print("EXCEPTION!!!!!!")
-                              print(e)
+                            dsquerytile = gdal.Open( os.path.join( self.output, str(tz+1), str(x), "%s.%s" % (y, self.tileext)), gdal.GA_ReadOnly)
+                            if (ty==0 and y==1) or (ty!=0 and (y % (2*ty)) != 0):
+                                tileposy = 0
+                            else:
+                                tileposy = self.tilesize
+                            if tx:
+                                tileposx = x % (2*tx) * self.tilesize
+                            elif tx==0 and x==1:
+                                tileposx = self.tilesize
+                            else:
+                                tileposx = 0
+                            dsquery.WriteRaster( tileposx, tileposy, self.tilesize, self.tilesize,
+                                dsquerytile.ReadRaster(0,0,self.tilesize,self.tilesize),
+                                band_list=list(range(1,tilebands+1)))
+                            children.append( [x, y, tz+1] )
 
-                try:
-                    self.scale_query_to_tile(dsquery, dstile, tilefilename)
+                self.scale_query_to_tile(dsquery, dstile, tilefilename)
+                # Write a copy of tile to png/jpg
+                if self.options.resampling != 'antialias':
                     # Write a copy of tile to png/jpg
-                    if self.options.resampling != 'antialias':
-                        # Write a copy of tile to png/jpg
-                        self.out_drv.CreateCopy(tilefilename, dstile, strict=0)
-                except Exception as e:
-                    print("EXCEPTION 2")
-                    print(e)
+                    self.out_drv.CreateCopy(tilefilename, dstile, strict=0)
 
                 if self.options.verbose:
                     print("\tbuild from zoom", tz+1," tiles:", (2*tx, 2*ty), (2*tx+1, 2*ty),(2*tx, 2*ty+1), (2*tx+1, 2*ty+1))
@@ -1425,7 +1409,6 @@ gdal2tiles temp.vrt""" % self.input )
                     f.close()
 
                 if not self.options.verbose:
-                    #queue.put(tcount)
                     pass
 
 
@@ -2331,19 +2314,19 @@ if __name__=='__main__':
     if argv:
         gdal2tiles = GDAL2Tiles( argv[1:] ) # handle command line options
 
-        # print("Generating metadata:")
-        # p = multiprocessing.Process(target=worker_metadata, args=[argv])
-        # p.start()
-        # p.join()
-        # print("Metadata generation complete.")
+        print("Generating metadata:")
+        p = multiprocessing.Process(target=worker_metadata, args=[argv])
+        p.start()
+        p.join()
+        print("Metadata generation complete.")
 
-        # pool = multiprocessing.Pool()
-        # print("Generating Base Tiles:")
-        # for cpu in range(gdal2tiles.options.processes):
-        #     pool.apply_async(worker_base_tiles, [argv, cpu], callback=worker_callback)
-        # pool.close()
-        # pool.join()
-        # print("Base tile generation complete.")
+        pool = multiprocessing.Pool()
+        print("Generating Base Tiles:")
+        for cpu in range(gdal2tiles.options.processes):
+            pool.apply_async(worker_base_tiles, [argv, cpu], callback=worker_callback)
+        pool.close()
+        pool.join()
+        print("Base tile generation complete.")
 
         tminz ,tmaxz = get_zooms(gdal2tiles)
         print("Generating Overview Tiles:")
