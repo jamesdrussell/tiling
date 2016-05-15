@@ -65,7 +65,7 @@ __version__ = "$Id: gdal2tiles.py 28392 2015-01-30 21:01:09Z rouault $"
 resampling_list = ('average','near','bilinear','cubic','cubicspline','lanczos','antialias')
 profile_list = ('mercator','geodetic','raster') #,'zoomify')
 webviewer_list = ('all','google','openlayers','none')
-queue = multiprocessing.Queue()
+#queue = multiprocessing.Queue()
 
 # =============================================================================
 # =============================================================================
@@ -1208,7 +1208,8 @@ gdal2tiles temp.vrt""" % self.input )
                     if self.options.verbose:
                         print("Tile generation skiped because of --resume")
                     else:
-                        queue.put(tcount)
+                        #queue.put(tcount)
+                        pass
                     continue
 
                 # Create directories for the tile
@@ -1313,7 +1314,8 @@ gdal2tiles temp.vrt""" % self.input )
                         f.close()
 
                 if not self.options.verbose:
-                    queue.put(tcount)
+                    #queue.put(tcount)
+                    pass
 
     # -------------------------------------------------------------------------
     def generate_overview_tiles(self, cpu, tz):
@@ -1351,7 +1353,8 @@ gdal2tiles temp.vrt""" % self.input )
                     if self.options.verbose:
                         print("Tile generation skiped because of --resume")
                     else:
-                        queue.put(tcount)
+                        #queue.put(tcount)
+                        pass
                     continue
 
                 # Create directories for the tile
@@ -1406,7 +1409,8 @@ gdal2tiles temp.vrt""" % self.input )
                     f.close()
 
                 if not self.options.verbose:
-                    queue.put(tcount)
+                    #queue.put(tcount)
+                    pass
 
 
     # -------------------------------------------------------------------------
@@ -2276,19 +2280,35 @@ gdal2tiles temp.vrt""" % self.input )
 # =============================================================================
 
 def worker_metadata(argv):
+  sys.stdout.flush()
+  print("\tStart of metadata worker.")
   gdal2tiles = GDAL2Tiles( argv[1:] )
   gdal2tiles.open_input()
   gdal2tiles.generate_metadata()
+  print("\tEnd of metadata worker.")
 
 def worker_base_tiles(argv, cpu):
+  sys.stdout.flush()
+  print("\tStart of base tile worker: " + str(cpu))
   gdal2tiles = GDAL2Tiles( argv[1:] )
   gdal2tiles.open_input()
   gdal2tiles.generate_base_tiles(cpu)
+  return cpu
+
+def worker_callback(cpu):
+    print "End of worker: " + str(cpu)
 
 def worker_overview_tiles(argv, cpu, tz):
+  sys.stdout.flush()
+  print("\tStart of overview tile worker: " + str(cpu) + ", zoom=" + str(tz))
   gdal2tiles = GDAL2Tiles( argv[1:] )
   gdal2tiles.open_input()
   gdal2tiles.generate_overview_tiles(cpu, tz)
+  print("\tEnd of overview tile worker: " + str(cpu) + ", zoom=" + str(tz))
+
+def get_zooms(gdal2tiles):
+    gdal2tiles.open_input()
+    return gdal2tiles.tminz, gdal2tiles.tmaxz
 
 if __name__=='__main__':
     argv = gdal.GeneralCmdLineProcessor( sys.argv )
@@ -2296,42 +2316,50 @@ if __name__=='__main__':
         gdal2tiles = GDAL2Tiles( argv[1:] ) # handle command line options
         #gdal2tiles.open_input()
 
+        print("Generating metadata:")
         p = multiprocessing.Process(target=worker_metadata, args=[argv])
         p.start()
         p.join()
+        print("Metadata generation complete.")
 
         pool = multiprocessing.Pool()
-        processed_tiles = 0
+        #processed_tiles = 0
         print("Generating Base Tiles:")
         for cpu in range(gdal2tiles.options.processes):
-            pool.apply_async(worker_base_tiles, [argv, cpu])
+            pool.apply_async(worker_base_tiles, [argv, cpu], callback=worker_callback)
         pool.close()
-        while len(multiprocessing.active_children()) != 0:
-            try:
-                total = queue.get(timeout=1)
-                processed_tiles += 1
-                gdal.TermProgress_nocb(processed_tiles / float(total))
-                sys.stdout.flush()
-            except:
-                pass
+        # while len(multiprocessing.active_children()) != 0:
+        #     try:
+        #         total = queue.get(timeout=1)
+        #         processed_tiles += 1
+        #         gdal.TermProgress_nocb(processed_tiles / float(total))
+        #         sys.stdout.flush()
+        #     except:
+        #         pass
         pool.join()
+        print("Base tile generation complete.")
 
-        processed_tiles = 0
+        #processed_tiles = 0
+        tminz ,tmaxz = getZooms(gdal2tiles)
         print("Generating Overview Tiles:")
-        for tz in range(gdal2tiles.tmaxz-1, gdal2tiles.tminz-1, -1):
+        for tz in range(tmaxz-1, tminz-1, -1):
+            print("\tGenerating for zoom level: " + str(tz))
             pool = multiprocessing.Pool()
             for cpu in range(gdal2tiles.options.processes):
                 pool.apply_async(worker_overview_tiles, [argv, cpu, tz])
             pool.close()
-            while len(multiprocessing.active_children()) != 0:
-                try:
-                    total = queue.get(timeout=1)
-                    processed_tiles += 1
-                    gdal.TermProgress_nocb(processed_tiles / float(total))
-                    sys.stdout.flush()
-                except:
-                    pass
+            # while len(multiprocessing.active_children()) != 0:
+            #     try:
+            #         total = queue.get(timeout=1)
+            #         processed_tiles += 1
+            #         gdal.TermProgress_nocb(processed_tiles / float(total))
+            #         sys.stdout.flush()
+            #     except:
+            #         pass
             pool.join()
+            print("\tZoom level " + str(tz) + " complete.")
+
+        print("Overview tile generation complete")
 
         #gdal2tiles = GDAL2Tiles( argv[1:] )
         #gdal2tiles.process()
