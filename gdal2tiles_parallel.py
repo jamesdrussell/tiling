@@ -2294,7 +2294,7 @@ if __name__=='__main__':
     argv = gdal.GeneralCmdLineProcessor( sys.argv )
     if argv:
         gdal2tiles = GDAL2Tiles( argv[1:] ) # handle command line options
-        gdal2tiles.open_input()
+        #gdal2tiles.open_input()
 
         p = multiprocessing.Process(target=worker_metadata, args=[argv])
         p.start()
