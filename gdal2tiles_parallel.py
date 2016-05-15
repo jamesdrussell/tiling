@@ -51,6 +51,7 @@ import os
 import math
 import multiprocessing
 import tempfile
+from optparse import OptionParser, OptionGroup
 
 try:
     from PIL import Image
@@ -651,7 +652,6 @@ gdal_vrtmerge.py -o merged.vrt %s""" % " ".join(self.args))
     def optparse_init(self):
         """Prepare the option parser for input (argv)"""
 
-        from optparse import OptionParser, OptionGroup
         usage = "Usage: %prog [options] input_file(s) [output]"
         p = OptionParser(usage, version="%prog "+ __version__)
         p.add_option("-p", "--profile", dest='profile', type='choice', choices=profile_list,
