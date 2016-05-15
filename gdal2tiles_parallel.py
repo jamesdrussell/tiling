@@ -1402,11 +1402,15 @@ gdal2tiles temp.vrt""" % self.input )
                               print("EXCEPTION!!!!!!")
                               print(e)
 
-                self.scale_query_to_tile(dsquery, dstile, tilefilename)
-                # Write a copy of tile to png/jpg
-                if self.options.resampling != 'antialias':
+                try:
+                    self.scale_query_to_tile(dsquery, dstile, tilefilename)
                     # Write a copy of tile to png/jpg
-                    self.out_drv.CreateCopy(tilefilename, dstile, strict=0)
+                    if self.options.resampling != 'antialias':
+                        # Write a copy of tile to png/jpg
+                        self.out_drv.CreateCopy(tilefilename, dstile, strict=0)
+                except Exception as e:
+                    print("EXCEPTION 2")
+                    print(e)
 
                 if self.options.verbose:
                     print("\tbuild from zoom", tz+1," tiles:", (2*tx, 2*ty), (2*tx+1, 2*ty),(2*tx, 2*ty+1), (2*tx+1, 2*ty+1))
